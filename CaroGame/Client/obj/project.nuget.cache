@@ -1,13 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "uTGJkzPTvD8=",
+  "dgSpecHash": "81vicQDTJhQ=",
   "success": true,
-  "projectFilePath": "C:\\Users\\admin\\Videos\\LapTrinhMangGK\\CaroGame\\Client\\Client.csproj",
-  "expectedPackageFiles": [
-    "C:\\Users\\admin\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.11\\microsoft.netcore.app.ref.9.0.11.nupkg.sha512",
-    "C:\\Users\\admin\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.11\\microsoft.windowsdesktop.app.ref.9.0.11.nupkg.sha512",
-    "C:\\Users\\admin\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.11\\microsoft.aspnetcore.app.ref.9.0.11.nupkg.sha512",
-    "C:\\Users\\admin\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\9.0.11\\microsoft.netcore.app.host.win-x64.9.0.11.nupkg.sha512"
-  ],
+  "projectFilePath": "D:\\Năm 3\\LapTrinhMang\\LapTrinhMangGK\\CaroGame\\Client\\Client.csproj",
+  "expectedPackageFiles": [],
   "logs": []
 }
