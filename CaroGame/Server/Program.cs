@@ -151,3 +151,135 @@ sealed class Room
             
         }
     }
+    private async Task ListenPlayer(PlayerConn p)
+    {
+        string? line;
+        while ((line = await p.Reader.ReadLineAsync()) != null)
+        {
+            if (line.StartsWith("MOVE:"))
+            {
+                if (gameOver)
+                {
+                    await p.SendAsync("INFO:Ván đã kết thúc, chờ rematch hoặc thoát.");
+                    continue;
+                }
+
+                if (p != current)
+                {
+                    await p.SendAsync("INFO:Chưa tới lượt bạn!");
+                    continue;
+                }
+
+                var payload = line[5..];
+                if (!TryParseMove(payload, out int x, out int y))
+                {
+                    await p.SendAsync("INFO:Lỗi cú pháp MOVE:x,y");
+                    continue;
+                }
+
+                if (!InBoard(x, y) || board[y, x] != '\0')
+                {
+                    await p.SendAsync("INFO:Ô không hợp lệ hoặc đã đánh rồi");
+                    continue;
+                }
+
+                board[y, x] = p.Mark;
+                await Broadcast($"BOARD:{x},{y},{p.Mark}");
+
+                if (IsWin(x, y, p.Mark))
+                {
+                    gameOver = true;
+                    await Broadcast($"WIN:{p.Mark}");
+                    continue;
+                }
+
+                if (IsDraw())
+                {
+                    gameOver = true;
+                    await Broadcast("DRAW");
+                    continue;
+                }
+
+                current = (current == xPlayer) ? oPlayer : xPlayer;
+                await Broadcast($"TURN:{current.Mark}");
+            }
+            else if (line == "REMATCH")
+            {
+                if (!gameOver)
+                {
+                    await p.SendAsync("INFO:Ván đang diễn ra, không thể rematch!");
+                    continue;
+                }
+
+                await HandleRematch(p);
+            }
+            else if (line == "EXIT")
+            {
+                await p.SendAsync("INFO:Bạn đã thoát khỏi ván!");
+                break;
+            }
+        }
+    }
+
+    private async Task HandleRematch(PlayerConn requester)
+    {
+        PlayerConn other = requester == xPlayer ? oPlayer : xPlayer;
+
+        if (!gameOver)
+            return;
+
+        await requester.SendAsync("INFO:Đang chuẩn bị ván mới...");
+        await other.SendAsync("INFO:Đối thủ muốn chơi lại...");
+
+        // Reset bàn cờ
+        Array.Clear(board, 0, board.Length);
+        current = xPlayer;
+        gameOver = false;
+
+        await Broadcast($"START:SIZE={size}");
+        await Broadcast($"TURN:{current.Mark}");
+    }
+
+    private static bool TryParseMove(string s, out int x, out int y)
+    {
+        x = y = -1;
+        var parts = s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length != 2) return false;
+        return int.TryParse(parts[0], out x) && int.TryParse(parts[1], out y);
+    }
+
+    private bool InBoard(int x, int y) => x >= 0 && y >= 0 && x < size && y < size;
+
+    private async Task Broadcast(string msg)
+    {
+        await Task.WhenAll(xPlayer.SendAsync(msg), oPlayer.SendAsync(msg));
+    }
+
+    private bool IsDraw()
+    {
+        for (int r = 0; r < size; r++)
+            for (int c = 0; c < size; c++)
+                if (board[r, c] == '\0') return false;
+        return true;
+    }
+
+    private bool IsWin(int x, int y, char mark)
+    {
+        return CountLine(x, y, 1, 0, mark) + CountLine(x, y, -1, 0, mark) - 1 >= 5 ||
+               CountLine(x, y, 0, 1, mark) + CountLine(x, y, 0, -1, mark) - 1 >= 5 ||
+               CountLine(x, y, 1, 1, mark) + CountLine(x, y, -1, -1, mark) - 1 >= 5 ||
+               CountLine(x, y, 1, -1, mark) + CountLine(x, y, -1, 1, mark) - 1 >= 5;
+    }
+
+    private int CountLine(int x, int y, int dx, int dy, char mark)
+    {
+        int count = 0;
+        while (InBoard(x, y) && board[y, x] == mark)
+        {
+            count++;
+            x += dx;
+            y += dy;
+        }
+        return count;
+    }
+}
